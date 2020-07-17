@@ -94,10 +94,14 @@ def test_book_mst(book_distances, book_names):
     # From Stanley chapter 13
     df = pd.DataFrame(book_distances, columns=book_names, index=book_names)
     graph = Graph(df)
-    mst = graph.mst()
-    mst = sorted(mst)
-    assert mst[0][0] == 0.74 and "KO" in mst[0] and "PG" in mst[0]
-    assert mst[1][0] == 0.84 and "CHV" in mst[1] and "TX" in mst[1]
-    assert mst[2][0] == 0.86 and "KO" in mst[2] and "GE" in mst[2]
-    assert mst[3][0] == 0.89 and "CHV" in mst[3] and "XON" in mst[3]
-    assert mst[4][0] == 1.10 and "PG" in mst[4] and "XON" in mst[4]
+    for i in range(2):
+        if i == 0:
+            mst = graph.kruskal_mst()
+        elif i == 1:
+            mst = graph.prim_mst()
+        mst = sorted(mst)
+        assert mst[0][0] == 0.74 and "KO" in mst[0] and "PG" in mst[0]
+        assert mst[1][0] == 0.84 and "CHV" in mst[1] and "TX" in mst[1]
+        assert mst[2][0] == 0.86 and "KO" in mst[2] and "GE" in mst[2]
+        assert mst[3][0] == 0.89 and "CHV" in mst[3] and "XON" in mst[3]
+        assert mst[4][0] == 1.10 and "PG" in mst[4] and "XON" in mst[4]
