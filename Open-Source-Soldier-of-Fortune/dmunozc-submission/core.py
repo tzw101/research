@@ -11,64 +11,136 @@ import numpy as np
 from graph import Graph
 import networkx as nx
 import matplotlib.pyplot as plt
+import argparse
 
-ASSETS = ["MSFT", "FB", "AAPL", "NFLX", "GOOG", "SPY", "IWM", "GLD", "TLT",
-          "TIPS", "SHY"]
-random.seed(69)
+DEFAULT_ASSETS = [
+    "WETF", "BIG", "STNG", "CSCO", "XLY", "LABD", "MRVL", "STZ", "COG", "KO",
+    "SGMO", "GOOS", "FDX", "TRGP", "ILMN", "HOG", "SIG", "ET", "MDT", "CHL",
+    "S", "MELI", "BSX", "WMT", "MAR", "T", "KRE", "CNC", "EAF", "EQT", "SE",
+    "ITCI", "GME", "FAZ", "FIVE", "CARS", "IMMU", "CHWY", "RVLV", "MOMO",
+    "SPY", "XLP", "GD", "MU", "LMT", "GOLD", "PPL", "QD", "RSX", "HTHT"
+]
 
 
-def asset_prices(N, start_date="2015-01-01", end_date="2016-01-01"):
-    assets = random.sample(ASSETS, N)
+def asset_prices(assets, start_date="2015-01-01", end_date="2016-01-01"):
+    """Returns asset prices from yahoo finance.
+
+    Parameters
+    ----------
+    assets: list
+        list of assets
+    start_date: string
+        start date of asset prices
+    end_date: astring
+        end date of asset prices
+
+    Returns
+    -------
+    prices: pandas dataframe
+    """
     return yf.download(
         tickers=" ".join(assets), start=start_date, end=end_date
     )
 
-def draw_graph(G, ax, pos):
-     # pos = nx.nx_agraph.graphviz_layout(G)
-    nx.draw_networkx(G, pos, node_size=800, ax=ax)
-    labels = nx.get_edge_attributes(G, 'weight')
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=labels, font_size=12,
-                                 ax=ax)
 
-def main():
-    assets = asset_prices(len(ASSETS))
+def draw_graph(graph, ax, graph_layout):
+    """Helper function to draw nx graph.
+
+    Parameters
+    ----------
+    graph: nx graph
+    ax: matplotlib axes
+    graph_layout: nx layout
+    """
+    nx.draw_networkx(graph, graph_layout, node_size=1000, ax=ax)
+    labels = nx.get_edge_attributes(graph, "weight")
+    nx.draw_networkx_edge_labels(
+        graph, graph_layout, edge_labels=labels, font_size=12, ax=ax
+    )
+
+
+def main(assets, start_date, end_date, plot_original=False):
+    """Main function to draw MST from assets.
+
+    Parameters
+    ----------
+    assets: list
+        list of assets
+    start_date: string
+        start date of asset prices
+    end_date: astring
+        end date of asset prices
+    """
+    assets = asset_prices(assets, start_date, end_date)
     close_prices = assets["Close"]
-    # log(5) - log(2) == log(5/2)
+    # For reference, log(x) - log(y) == log(x/y)
     log_returns = np.log(close_prices / close_prices.shift(1))[1:]
     correlations = log_returns.corr()
     distances = np.sqrt(2 * (1 - correlations))
-    # Correlation and distance matrices are symmetrical. Can ignore lower
-    # diagonal.
+    # Build graph.
     graph = Graph(distances)
     edges = graph.weighted_edges()
     nodes = graph.vertices()
-    # mst = graph.mst()
-    G = nx.Graph()
-
-    G.add_nodes_from(nodes)
-    pos = nx.kamada_kawai_layout(G)
-    # Switch needed due to networkx asking weight to be last in tuple.
-    new_edges = []
-    for edge in edges:
-        G.add_edge(edge[1], edge[2], weight=round(edge[0], 3))
-    fig, ax = plt.subplots(1, 1)
-    draw_graph(G, ax, pos)
-    ax.set_title("Original Network")
+    # Initialize nx graph plotting
+    graph_layout = None
+    if plot_original:
+        nxGraph = nx.Graph()
+        nxGraph.add_nodes_from(nodes)
+        graph_layout = nx.spring_layout(nxGraph)
+        # Draw network with all edges.
+        # Add weighted edges to nx graph
+        for edge in edges:
+            nxGraph.add_edge(edge[1], edge[2], weight=round(edge[0], 3))
+        fig, ax = plt.subplots(1, 1)
+        fig.set_size_inches(14.5, 10.5)
+        draw_graph(nxGraph, ax, graph_layout)
+        ax.set_title("Original Network Graph", fontsize=24)
     mst = graph.kruskal_mst()
-
-    G = nx.Graph()
-
-    G.add_nodes_from(nodes)
-    # Switch needed due to networkx asking weight to be last in tuple.
-    new_edges = []
+    # Draw mst network
+    nxGraph = nx.Graph()
+    nxGraph.add_nodes_from(nodes)
     for edge in mst:
-        G.add_edge(edge[1], edge[2], weight=round(edge[0], 3))
+        nxGraph.add_edge(edge[1], edge[2], weight=round(edge[0], 3))
+    if not graph_layout:
+        graph_layout = nx.spring_layout(nxGraph)
     fig, ax = plt.subplots(1, 1)
-    draw_graph(G, ax, pos)
-    ax.set_title("MST Network")
-
-
-
-    # plt.savefig("temp.png",bbox_inches='tight')
+    fig.set_size_inches(10.5, 10.5)
+    draw_graph(nxGraph, ax, graph_layout)
+    ax.set_title("MST Network Graph", fontsize=24)
     plt.show()
-main()
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-a",
+        dest="assets",
+        nargs="+",
+        help="list of assets, separated by a space",
+        default=DEFAULT_ASSETS,
+    )
+    parser.add_argument(
+        "-start",
+        dest="start_date",
+        help="start date of asset prices",
+        default="2019-01-01",
+    )
+    parser.add_argument(
+        "-end",
+        dest="end_date",
+        help="end date of asset prices",
+        default="2020-01-01",
+    )
+    parser.add_argument(
+        "-po",
+        dest="plot_original",
+        help="plot original full assets graph",
+        default=False,
+    )
+    parser.add_argument(
+        "-rs", dest="rseed", help="random seed", default=None,
+    )
+    args = parser.parse_args()
+    if args.rseed:
+        random.seed(int(args.rseed))
+    main(args.assets, args.start_date, args.end_date, args.plot_original)

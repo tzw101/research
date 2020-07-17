@@ -92,9 +92,8 @@ class Graph:
         old_edges = edges.copy()
         while not found:
             edge = heapq.heappop(old_edges)
-            if any(v in visited for v in edge[1:]) and any(
-                v in not_visited for v in edge[1:]
-            ):
+            if any(v in visited for v in edge[1:]) and \
+                    any(v in not_visited for v in edge[1:]):
                 found = True
         return edge
 
