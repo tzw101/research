@@ -1,6 +1,6 @@
-"""This file implements MST on a distance metric for a number of stocks.
+"""This file showcases MST on a distance metric for a number of stocks.
 
-It follows the methedology as seen in https://arxiv.org/abs/1703.00485
+It follows the methodology as seen in https://arxiv.org/abs/1703.00485
 It calculates a distance metric based on multiple assets log returns. Based
 on this metric, a minimum spanning tree (MST) is created.
 """
@@ -80,7 +80,7 @@ def main(assets, start_date, end_date, plot_original=False):
         list of assets
     start_date: string
         start date of asset prices
-    end_date: astring
+    end_date: string
         end date of asset prices
     """
     assets = asset_prices(assets, start_date, end_date)
