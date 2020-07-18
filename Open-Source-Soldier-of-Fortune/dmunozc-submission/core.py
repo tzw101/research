@@ -12,15 +12,16 @@ from graph import Graph
 import networkx as nx
 import matplotlib.pyplot as plt
 import argparse
-from scipy.cluster.hierarchy import dendrogram, distance, linkage, fcluster
+from scipy.cluster.hierarchy import dendrogram, distance, linkage
 
 DEFAULT_ASSETS = [
     "AAPL", "MSFT", "AMZN", "FB", "GOOG", "JNJ", "V", "PG", "JPM", "UNH",
     "TSLA", "INTC", "NVDA", "NFLX", "ADBE", "PYPL", "CSCO", "PEP", "SPY",
-    "HD", "GS", "MCD", "BA", "MMM", "CAT", "WMT", "IBM", "TRV", "DIS", "NKE",
-    "GLD", "SLV", "SPLV", "TLT", "SHY", "SHYD", "IEF", "SHV", "JNK", "LQD",
-    "EWA", "EWZ", "EWI", "EWJ", "EWG", "EWW", "THD", "EWU", "RSX", "UUP"
+    "HD", "EWA", "MCD", "BA", "MMM", "CAT", "WMT", "IBM", "TRV", "DIS",
+    "NKE", "GLD", "SLV", "SPLV", "TLT", "SHY", "SHYD", "IEF", "SHV", "JNK",
+    "LQD", "GS", "EWZ", "EWI", "EWJ", "EWG", "EWW", "THD", "EWU", "RSX", "UUP"
 ]
+
 
 def asset_prices(assets, start_date="2015-01-01", end_date="2016-01-01"):
     """Returns asset prices from yahoo finance.
@@ -64,13 +65,9 @@ def draw_graph(vertices, edges, ax, graph_layout=None, title=""):
     if not graph_layout:
         graph_layout = nx.spring_layout
     # Make sure graph_layout is a function type.
-    assert hasattr(graph_layout, '__call__')
+    assert hasattr(graph_layout, "__call__")
     graph_layout = graph_layout(nx_graph)
-    nx.draw_networkx(nx_graph, graph_layout, node_size=1000, ax=ax)
-    # labels = nx.get_edge_attributes(nx_graph, "weight")
-    # nx.draw_networkx_edge_labels(
-    #     nx_graph, graph_layout, edge_labels=labels, font_size=12, ax=ax
-    # )
+    nx.draw_networkx(nx_graph, graph_layout, node_size=1000, ax=ax, alpha=0.65)
     ax.set_title(title, fontsize=24)
 
 
@@ -100,19 +97,29 @@ def main(assets, start_date, end_date, plot_original=False):
     if plot_original:
         fig, ax = plt.subplots(1, 1)
         fig.set_size_inches(14.5, 10.5)
-        draw_graph(nodes, edges, ax, graph_layout=nx.spring_layout,
-                   title="Original Network Graph")
+        draw_graph(
+            nodes,
+            edges,
+            ax,
+            graph_layout=nx.spring_layout,
+            title="Original Network Graph",
+        )
     # Plot MST.
     mst = graph.kruskal_mst()
     fig, ax = plt.subplots(1, 1)
     fig.set_size_inches(14.5, 10.5)
-    draw_graph(nodes, mst, ax, graph_layout=nx.spring_layout,
-               title="MST Network Graph")
+    draw_graph(
+        nodes,
+        mst,
+        ax,
+        graph_layout=nx.spring_layout,
+        title="MST Network Graph",
+    )
     # Plot dendogram.
     fig, ax = plt.subplots(1, 1)
     fig.set_size_inches(20.5, 8.5)
     pdist = distance.pdist(distances.values)
-    link = linkage(pdist, method='complete')
+    link = linkage(pdist, method="complete")
     dendrogram(link, labels=distances.columns)
     ax.set_title("Dendogram of MST", fontsize=24)
     plt.show()
