@@ -12,15 +12,15 @@ from graph import Graph
 import networkx as nx
 import matplotlib.pyplot as plt
 import argparse
+from scipy.cluster.hierarchy import dendrogram, distance, linkage, fcluster
 
 DEFAULT_ASSETS = [
-    "WETF", "BIG", "STNG", "CSCO", "XLY", "LABD", "MRVL", "STZ", "COG", "KO",
-    "SGMO", "GOOS", "FDX", "TRGP", "ILMN", "HOG", "SIG", "ET", "MDT", "CHL",
-    "S", "MELI", "BSX", "WMT", "MAR", "T", "KRE", "CNC", "EAF", "EQT", "SE",
-    "ITCI", "GME", "FAZ", "FIVE", "CARS", "IMMU", "CHWY", "RVLV", "MOMO",
-    "SPY", "XLP", "GD", "MU", "LMT", "GOLD", "PPL", "QD", "RSX", "HTHT"
+    "AAPL", "MSFT", "AMZN", "FB", "GOOG", "JNJ", "V", "PG", "JPM", "UNH",
+    "TSLA", "INTC", "NVDA", "NFLX", "ADBE", "PYPL", "CSCO", "PEP", "SPY",
+    "HD", "GS", "MCD", "BA", "MMM", "CAT", "WMT", "IBM", "TRV", "DIS", "NKE",
+    "GLD", "SLV", "SPLV", "TLT", "SHY", "SHYD", "IEF", "SHV", "JNK", "LQD",
+    "EWA", "EWZ", "EWI", "EWJ", "EWG", "EWW", "THD", "EWU", "RSX", "UUP"
 ]
-
 
 def asset_prices(assets, start_date="2015-01-01", end_date="2016-01-01"):
     """Returns asset prices from yahoo finance.
@@ -43,20 +43,35 @@ def asset_prices(assets, start_date="2015-01-01", end_date="2016-01-01"):
     )
 
 
-def draw_graph(graph, ax, graph_layout):
+def draw_graph(vertices, edges, ax, graph_layout=None, title=""):
     """Helper function to draw nx graph.
 
     Parameters
     ----------
-    graph: nx graph
+    vertices: list
+        contains the vertices of a graph
+    edges: list of tuples
+        contains edges of a graph
     ax: matplotlib axes
     graph_layout: nx layout
+    title: string
+        title of plot
     """
-    nx.draw_networkx(graph, graph_layout, node_size=1000, ax=ax)
-    labels = nx.get_edge_attributes(graph, "weight")
-    nx.draw_networkx_edge_labels(
-        graph, graph_layout, edge_labels=labels, font_size=12, ax=ax
-    )
+    nx_graph = nx.Graph()
+    nx_graph.add_nodes_from(vertices)
+    for edge in edges:
+        nx_graph.add_edge(edge[1], edge[2], weight=round(edge[0], 3))
+    if not graph_layout:
+        graph_layout = nx.spring_layout
+    # Make sure graph_layout is a function type.
+    assert hasattr(graph_layout, '__call__')
+    graph_layout = graph_layout(nx_graph)
+    nx.draw_networkx(nx_graph, graph_layout, node_size=1000, ax=ax)
+    # labels = nx.get_edge_attributes(nx_graph, "weight")
+    # nx.draw_networkx_edge_labels(
+    #     nx_graph, graph_layout, edge_labels=labels, font_size=12, ax=ax
+    # )
+    ax.set_title(title, fontsize=24)
 
 
 def main(assets, start_date, end_date, plot_original=False):
@@ -81,32 +96,25 @@ def main(assets, start_date, end_date, plot_original=False):
     graph = Graph(distances)
     edges = graph.weighted_edges()
     nodes = graph.vertices()
-    # Initialize nx graph plotting
-    graph_layout = None
+    # Plot all nodes and edges.
     if plot_original:
-        nxGraph = nx.Graph()
-        nxGraph.add_nodes_from(nodes)
-        graph_layout = nx.spring_layout(nxGraph)
-        # Draw network with all edges.
-        # Add weighted edges to nx graph
-        for edge in edges:
-            nxGraph.add_edge(edge[1], edge[2], weight=round(edge[0], 3))
         fig, ax = plt.subplots(1, 1)
         fig.set_size_inches(14.5, 10.5)
-        draw_graph(nxGraph, ax, graph_layout)
-        ax.set_title("Original Network Graph", fontsize=24)
+        draw_graph(nodes, edges, ax, graph_layout=nx.spring_layout,
+                   title="Original Network Graph")
+    # Plot MST.
     mst = graph.kruskal_mst()
-    # Draw mst network
-    nxGraph = nx.Graph()
-    nxGraph.add_nodes_from(nodes)
-    for edge in mst:
-        nxGraph.add_edge(edge[1], edge[2], weight=round(edge[0], 3))
-    if not graph_layout:
-        graph_layout = nx.spring_layout(nxGraph)
     fig, ax = plt.subplots(1, 1)
-    fig.set_size_inches(10.5, 10.5)
-    draw_graph(nxGraph, ax, graph_layout)
-    ax.set_title("MST Network Graph", fontsize=24)
+    fig.set_size_inches(14.5, 10.5)
+    draw_graph(nodes, mst, ax, graph_layout=nx.spring_layout,
+               title="MST Network Graph")
+    # Plot dendogram.
+    fig, ax = plt.subplots(1, 1)
+    fig.set_size_inches(20.5, 8.5)
+    pdist = distance.pdist(distances.values)
+    link = linkage(pdist, method='complete')
+    dendrogram(link, labels=distances.columns)
+    ax.set_title("Dendogram of MST", fontsize=24)
     plt.show()
 
 
@@ -123,13 +131,13 @@ if __name__ == "__main__":
         "-start",
         dest="start_date",
         help="start date of asset prices",
-        default="2019-01-01",
+        default="2020-01-01",
     )
     parser.add_argument(
         "-end",
         dest="end_date",
         help="end date of asset prices",
-        default="2020-01-01",
+        default="2020-02-18",
     )
     parser.add_argument(
         "-po",

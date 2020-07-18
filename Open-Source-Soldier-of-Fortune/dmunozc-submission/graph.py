@@ -13,6 +13,7 @@ import heapq
 
 
 class Graph:
+    """This class implements a graph data structure."""
     def __init__(self, vertices):
         """Stores vertices by name and values.
 
